@@ -47,7 +47,14 @@
         }
     </style>
 </head>
-<body class="bg-deep text-slate-300 font-inter selection:bg-cyber selection:text-deep">
+<body class="bg-deep text-slate-300 font-inter selection:bg-cyber selection:text-deep overflow-x-hidden">
+    <!-- Global Ambient Background -->
+    <div class="fixed inset-0 pointer-events-none z-0 overflow-hidden">
+        <div class="absolute inset-0 hero-glow opacity-60"></div>
+        <div class="absolute top-0 left-1/4 w-[1000px] h-[1000px] bg-cyber/5 blur-[160px] rounded-full -translate-y-1/2"></div>
+        <div class="absolute bottom-0 right-1/4 w-[800px] h-[800px] bg-violet/5 blur-[140px] rounded-full translate-y-1/2"></div>
+    </div>
+
     <!-- Navigation -->
     <nav class="fixed top-0 w-full z-50 glass border-b border-white/5">
         <div class="max-w-7xl mx-auto px-6 h-20 flex items-center justify-between">
@@ -66,9 +73,9 @@
     </nav>
 
     <!-- Hero Section -->
-    <header class="relative min-h-screen flex items-center pt-20 overflow-hidden">
-        <div class="absolute inset-0 hero-glow"></div>
-        <div class="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[800px] h-[800px] bg-violet/10 blur-[120px] rounded-full"></div>
+    <header class="relative min-h-screen flex items-center pt-20 overflow-hidden z-10">
+        <!-- Ambient elements removed from here to global layer -->
+
         
         <div class="relative max-w-7xl mx-auto px-6 w-full grid md:grid-cols-2 gap-12 items-center">
             <div class="space-y-8">
@@ -95,23 +102,28 @@
                 <h2 class="font-outfit font-bold text-xl text-white mb-6 uppercase tracking-widest">Input Parameters</h2>
                 <div class="space-y-6">
                     <div>
-                        <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 font-bold">Terminal Destination</label>
-                        <input type="text" placeholder="CHOOSE COORDINATES" class="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-md focus:outline-none focus:border-cyber transition-colors text-white placeholder:text-white/20">
+                        <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 font-bold">Destination</label>
+                        <input type="text" placeholder="ENTER DESTINATION" class="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-md focus:outline-none focus:border-cyber transition-colors text-white placeholder:text-white/20">
                     </div>
                     <div class="grid grid-cols-2 gap-4">
                         <div>
-                            <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 font-bold">Temporal Window</label>
-                            <input type="text" placeholder="SELECT DATES" class="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-md focus:outline-none focus:border-cyber transition-colors text-white placeholder:text-white/20">
+                            <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 font-bold">Departure</label>
+                            <input type="text" onfocus="(this.type='date')" onblur="(this.type='text')" placeholder="START DATE" class="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-md focus:outline-none focus:border-cyber transition-colors text-white placeholder:text-white/20">
                         </div>
                         <div>
-                            <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 font-bold">Credit Allowance</label>
-                            <input type="text" placeholder="USD ($)" class="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-md focus:outline-none focus:border-cyber transition-colors text-white placeholder:text-white/20">
+                            <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 font-bold">Return</label>
+                            <input type="text" onfocus="(this.type='date')" onblur="(this.type='text')" placeholder="END DATE" class="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-md focus:outline-none focus:border-cyber transition-colors text-white placeholder:text-white/20">
                         </div>
                     </div>
+                    <div>
+                        <label class="block text-[10px] uppercase tracking-widest text-white/40 mb-2 font-bold">Budget</label>
+                        <input type="text" placeholder="INDIAN RUPEES (₹)" class="w-full bg-white/5 border border-white/10 px-4 py-3 rounded-md focus:outline-none focus:border-cyber transition-colors text-white placeholder:text-white/20">
+                    </div>
                     <button class="w-full py-4 border border-cyber text-cyber font-bold tracking-widest uppercase hover:bg-cyber hover:text-deep transition-all duration-300">
-                        Calculate Trajectory
+                        Submit
                     </button>
                 </div>
+
             </div>
         </div>
     </header>
