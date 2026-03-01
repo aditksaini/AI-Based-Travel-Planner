@@ -1,0 +1,30 @@
+@import "tailwindcss";
+
+@theme inline {
+  --color-cyber: #00f5ff;
+  --color-violet: #7000ff;
+  --color-deep: #020617;
+  
+  --font-outfit: "Outfit", sans-serif;
+  --font-inter: "Inter", sans-serif;
+}
+
+.glass {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.hero-glow {
+  background: radial-gradient(circle at center, rgba(0, 245, 255, 0.15) 0%, transparent 70%);
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}
+
+@keyframes float {
+  0% { transform: translateY(0px); }
+  50% { transform: translateY(-20px); }
+  100% { transform: translateY(0px); }
+}
