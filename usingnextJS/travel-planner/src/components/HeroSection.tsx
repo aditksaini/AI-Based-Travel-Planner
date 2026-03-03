@@ -2,9 +2,17 @@
 
 import React, { useState, useEffect } from "react";
 import PlannerWidget from "./PlannerWidget";
+import ChatOverlay from "./ChatOverlay";
 
 export default function HeroSection() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [isChatOpen, setIsChatOpen] = useState(false);
+  const [chatParams, setChatParams] = useState<any>(null);
+
+  const handlePlannerSubmit = (params: any) => {
+    setChatParams(params);
+    setIsChatOpen(true);
+  };
 
   // Prevent background scrolling when the modal is open
   useEffect(() => {
@@ -46,7 +54,7 @@ export default function HeroSection() {
 
         {/* Planner Widget Component */}
         <div className="relative z-10">
-          <PlannerWidget />
+          <PlannerWidget onSubmit={handlePlannerSubmit} />
         </div>
       </div>
 
@@ -146,6 +154,12 @@ export default function HeroSection() {
           </div>
         </div>
       )}
+      {/* --- CHAT OVERLAY --- */}
+      <ChatOverlay
+        isOpen={isChatOpen}
+        onClose={() => setIsChatOpen(false)}
+        initialParams={chatParams}
+      />
     </header>
   );
 }
