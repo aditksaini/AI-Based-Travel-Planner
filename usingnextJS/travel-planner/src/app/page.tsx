@@ -17,7 +17,7 @@ export default function Home() {
         <div className="absolute bottom-0 right-1/4 w-[800px] h-[800px] bg-violet/5 blur-[140px] rounded-full translate-y-1/2"></div>
       </div>
 
-      {/* <Navbar /> */}
+      <Navbar />
       <HeroSection />
       <MapPlaceholder />
       <FeaturesSection />
