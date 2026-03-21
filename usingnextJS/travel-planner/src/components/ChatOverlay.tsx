@@ -22,6 +22,7 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
   const [days, setDays] = useState(5);
   const [budgetLimit, setBudgetLimit] = useState(50000);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [imageUrl, setImageUrl] = useState("");
 
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +48,26 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
     return () => {
       document.body.style.overflow = "unset";
     };
+  }, [isOpen, initialParams]);
+
+  useEffect(() => {
+    if (isOpen && initialParams?.destination) {
+      const fetchImage = async () => {
+        try {
+          const res = await fetch(`/api/image?query=${encodeURIComponent(initialParams.destination)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.imageUrl) {
+              setImageUrl(data.imageUrl);
+            }
+          }
+        } catch (error) {
+          console.error("Failed to fetch image", error);
+        }
+      };
+      // adding a small delay to avoid blocking any initial load animation
+      setTimeout(fetchImage, 500);
+    }
   }, [isOpen, initialParams]);
 
   useEffect(() => {
@@ -95,48 +116,63 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
       <div className="relative glass border border-white/20 w-full h-full md:w-[90vw] md:h-[90vh] md:rounded-2xl shadow-[0_0_50px_rgba(0,245,255,0.1)] flex flex-col md:flex-row overflow-hidden scale-in-center">
 
         {/* Left Column: Dynamic Controls & Info */}
-        <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-white/10 bg-black/40 p-6 flex flex-col z-10 shrink-0">
-          <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
-            <h3 className="font-outfit font-bold tracking-widest text-cyber uppercase text-sm">Trip Parameters</h3>
-            {isRegenerating && (
-              <span className="flex h-3 w-3 relative">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber opacity-75"></span>
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-cyber"></span>
-              </span>
-            )}
-          </div>
-
-          <div className="space-y-8 flex-1">
-            <div className="space-y-4">
-              <div className="flex justify-between items-end">
-                <label className="text-[10px] uppercase tracking-widest text-white/50 font-bold">Duration</label>
-                <span className="text-white font-outfit font-bold">{days} Days</span>
+        <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-white/10 bg-black/40 flex flex-col z-10 shrink-0 overflow-hidden">
+          {imageUrl && (
+            <div 
+              className="w-full h-48 md:h-56 bg-cover bg-center bg-no-repeat relative border-b border-white/10 shrink-0 animate-in fade-in duration-1000"
+              style={{ backgroundImage: `url(${imageUrl})` }}
+            >
+              <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
+              <div className="absolute bottom-4 left-6 right-6">
+                <span className="text-[10px] uppercase tracking-widest text-white/70 font-bold drop-shadow-md">Destination</span>
+                <h2 className="font-outfit font-black tracking-wide text-white text-2xl drop-shadow-lg capitalize truncate">{initialParams?.destination || "Destination"}</h2>
               </div>
-              <input
-                type="range"
-                min="1" max="14"
-                value={days}
-                onChange={(e) => setDays(parseInt(e.target.value))}
-                onMouseUp={handleSliderChange}
-                onTouchEnd={handleSliderChange}
-                className="w-full accent-cyber cursor-pointer"
-              />
+            </div>
+          )}
+
+          <div className="p-6 flex-1 flex flex-col z-10">
+            <div className="flex items-center justify-between mb-8 pb-4 border-b border-white/10">
+              <h3 className="font-outfit font-bold tracking-widest text-cyber uppercase text-sm drop-shadow-md">Trip Parameters</h3>
+              {isRegenerating && (
+                <span className="flex h-3 w-3 relative">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-cyber"></span>
+                </span>
+              )}
             </div>
 
-            <div className="space-y-4">
-              <div className="flex justify-between items-end">
-                <label className="text-[10px] uppercase tracking-widest text-white/50 font-bold">Budget</label>
-                <span className="text-white font-outfit font-bold">₹{budgetLimit.toLocaleString()}</span>
+            <div className="space-y-8 flex-1">
+              <div className="space-y-4">
+                <div className="flex justify-between items-end bg-black/20 p-2 rounded-md">
+                  <label className="text-[10px] uppercase tracking-widest text-white/70 font-bold">Duration</label>
+                  <span className="text-white font-outfit font-bold text-shadow">{days} Days</span>
+                </div>
+                <input
+                  type="range"
+                  min="1" max="14"
+                  value={days}
+                  onChange={(e) => setDays(parseInt(e.target.value))}
+                  onMouseUp={handleSliderChange}
+                  onTouchEnd={handleSliderChange}
+                  className="w-full accent-cyber cursor-pointer"
+                />
               </div>
-              <input
-                type="range"
-                min="5000" max="500000" step="5000"
-                value={budgetLimit}
-                onChange={(e) => setBudgetLimit(parseInt(e.target.value))}
-                onMouseUp={handleSliderChange}
-                onTouchEnd={handleSliderChange}
-                className="w-full accent-violet cursor-pointer"
-              />
+
+              <div className="space-y-4">
+                <div className="flex justify-between items-end bg-black/20 p-2 rounded-md">
+                  <label className="text-[10px] uppercase tracking-widest text-white/70 font-bold">Budget</label>
+                  <span className="text-white font-outfit font-bold text-shadow">₹{budgetLimit.toLocaleString()}</span>
+                </div>
+                <input
+                  type="range"
+                  min="5000" max="500000" step="5000"
+                  value={budgetLimit}
+                  onChange={(e) => setBudgetLimit(parseInt(e.target.value))}
+                  onMouseUp={handleSliderChange}
+                  onTouchEnd={handleSliderChange}
+                  className="w-full accent-violet cursor-pointer"
+                />
+              </div>
             </div>
           </div>
         </div>
