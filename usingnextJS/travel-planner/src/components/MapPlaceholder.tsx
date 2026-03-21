@@ -1,51 +1,150 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 
-export default function MapPlaceholder() {
+// Dynamically import Leaflet Map to avoid SSR window errors
+const MapRoute = dynamic(() => import("./MapRoute"), {
+  ssr: false,
+  loading: () => (
+    <div className="absolute inset-0 flex items-center justify-center">
+      <div className="w-8 h-8 border-4 border-cyber border-t-transparent rounded-full animate-spin"></div>
+    </div>
+  ),
+});
+
+export default function MapPlaceholder({ sourceString, destinationString }: { sourceString?: string; destinationString?: string }) {
+  const [mapData, setMapData] = useState<any>(null); // destination
+  const [sourceData, setSourceData] = useState<any>(null); // source
+  const [routeInfo, setRouteInfo] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
+
+  // Fetch Geocoding for both Source and Destination
+  useEffect(() => {
+    if (!sourceString && !destinationString) {
+      setLoading(false);
+      return;
+    }
+
+    const fetchGeocoding = async () => {
+      try {
+        setLoading(true);
+        if (destinationString) {
+          const res = await fetch(`/api/graphhopper?q=${encodeURIComponent(destinationString)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.hits && data.hits.length > 0) setMapData(data.hits[0]);
+          }
+        }
+
+        if (sourceString) {
+          const res = await fetch(`/api/graphhopper?q=${encodeURIComponent(sourceString)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.hits && data.hits.length > 0) setSourceData(data.hits[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch graphhopper geocoding data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGeocoding();
+  }, [sourceString, destinationString]);
+
+  // Fetch Route whenever we have both Source and Destination
+  useEffect(() => {
+    if (!sourceData || !mapData) {
+      return;
+    }
+
+    const fetchRoute = async () => {
+      setLoading(true);
+      try {
+        // Enforce points_encoded=false to get coordinate array
+        const res = await fetch(
+          `/api/graphhopper?point=${sourceData.point.lat},${sourceData.point.lng}&point=${mapData.point.lat},${mapData.point.lng}&profile=car&points_encoded=false`
+        );
+        if (res.ok) {
+          const data = await res.json();
+          if (data.paths && data.paths.length > 0) {
+            setRouteInfo(data.paths[0]);
+          }
+        }
+      } catch (error) {
+        console.error("Failed to fetch route data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRoute();
+  }, [sourceData, mapData]);
+
+  if (!destinationString && !sourceString) return null;
+
+  // Formatting utilities for distance and time
+  const formatDistance = (meters: number) => (meters / 1000).toFixed(1) + " km";
+  const formatTime = (ms: number) => {
+    const mins = Math.floor(ms / 60000);
+    const hrs = Math.floor(mins / 60);
+    if (hrs > 0) return `${hrs}h ${mins % 60}m`;
+    return `${mins}m`;
+  };
+
   return (
-    <section id="map-preview" className="py-20 relative">
-      <div className="max-w-7xl mx-auto px-6">
-        <div className="mb-12 text-center">
-          <h2 className="font-outfit text-3xl md:text-5xl font-bold text-white mb-6">
-            Interactive Itinerary Mapping
-          </h2>
-          <p className="text-slate-400 max-w-2xl mx-auto text-lg">
-            Visualize your entire journey. Our map interface will automatically render optimal routes, key waypoints, and accommodation nodes.
-          </p>
-        </div>
+    <div className="w-full bg-black/40 border border-white/10 rounded-2xl p-6 mt-4">
+      <h4 className="text-cyber font-outfit uppercase tracking-widest text-xs font-bold mb-4">
+        Route Map (Source → Destination)
+      </h4>
 
-        {/* Map Container Placeholder */}
-        <div className="relative w-full aspect-video md:aspect-[21/9] rounded-3xl overflow-hidden glass border border-white/10 group">
-          {/* Subtle Grid Background */}
-          <div className="absolute inset-0 bg-[linear-gradient(to_right,#80808012_1px,transparent_1px),linear-gradient(to_bottom,#80808012_1px,transparent_1px)] bg-[size:24px_24px]"></div>
-
-          {/* Center Content Map Icon/Text */}
-          <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/40 backdrop-blur-sm z-10 transition-all duration-500 group-hover:bg-black/20">
-            <div className="w-20 h-20 rounded-full bg-cyber/10 border border-cyber/30 flex items-center justify-center mb-6 shadow-[0_0_30px_rgba(0,240,255,0.2)]">
-              <svg
-                className="w-10 h-10 text-cyber"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1.5" d="M9 20l-5.447-2.724A1 1 0 013 16.382V5.618a1 1 0 011.447-.894L9 7m0 13l6-3m-6 3V7m6 10l4.553 2.276A1 1 0 0021 18.382V7.618a1 1 0 00-.553-.894L15 4m0 13V4m0 0L9 7" />
-              </svg>
+      <div className="relative w-full aspect-video rounded-xl overflow-hidden bg-white/5 border border-white/10">
+        {loading ? (
+          <div className="absolute inset-0 flex items-center justify-center">
+            <div className="w-8 h-8 border-4 border-cyber border-t-transparent rounded-full animate-spin"></div>
+          </div>
+        ) : mapData || sourceData ? (
+          <>
+            <div className="absolute inset-0 z-0">
+              <MapRoute sourceData={sourceData} mapData={mapData} routeInfo={routeInfo} />
             </div>
-            <h3 className="font-outfit text-2xl font-bold text-white mb-2">Map API Integration Pending</h3>
-            <p className="text-slate-400 font-mono text-sm uppercase tracking-widest">Awaiting spatial data stream</p>
-          </div>
 
-          {/* Decorative Elements */}
-          <div className="absolute top-4 left-4 z-20 flex space-x-2">
-            <div className="w-3 h-3 rounded-full bg-red-500/50"></div>
-            <div className="w-3 h-3 rounded-full bg-yellow-500/50"></div>
-            <div className="w-3 h-3 rounded-full bg-green-500/50"></div>
-          </div>
+            {/* 🔥 SOURCE INFO OVERLAY */}
+            {sourceData && (
+              <div className="absolute bottom-16 left-4 bg-black/80 px-3 py-2 rounded-lg text-xs border border-white/10 backdrop-blur-md z-10 pointer-events-none">
+                <div className="text-green-400 font-mono mb-1">
+                  SRC → {sourceData.name}, {sourceData.country}
+                </div>
+                <div className="text-white/50 font-mono">
+                  LAT: {sourceData.point.lat.toFixed(4)}, LNG: {sourceData.point.lng.toFixed(4)}
+                </div>
+              </div>
+            )}
 
-          <div className="absolute bottom-4 right-4 z-20 bg-black/60 border border-white/10 px-4 py-2 rounded-lg backdrop-blur-md">
-            <span className="text-cyber text-xs font-mono">LAT: 00.0000 | LNG: 00.0000</span>
+            {/* 🔥 DESTINATION & ROUTE INFO OVERLAY */}
+            {mapData && (
+              <div className="absolute bottom-4 right-4 bg-black/80 px-3 py-2 rounded-lg text-xs border border-white/10 backdrop-blur-md text-right z-10 pointer-events-none">
+                <div className="text-cyber font-mono mb-1">
+                  DEST → {mapData.name}, {mapData.country}
+                </div>
+                {routeInfo && (
+                  <div className="text-white font-bold opacity-90">
+                    Distance: {formatDistance(routeInfo.distance)} • ETA: {formatTime(routeInfo.time)}
+                  </div>
+                )}
+              </div>
+            )}
+
+            <div className="absolute top-4 left-4 bg-black/80 border border-white/10 px-3 py-1 rounded-md text-[10px] z-10 pointer-events-none">
+              Powered by GraphHopper
+            </div>
+          </>
+        ) : (
+          <div className="absolute inset-0 flex items-center justify-center text-slate-400">
+            Map Data Unavailable
           </div>
-        </div>
+        )}
       </div>
-    </section>
+    </div>
   );
 }

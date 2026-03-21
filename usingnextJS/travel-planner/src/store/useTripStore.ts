@@ -5,7 +5,9 @@ import { persist } from 'zustand/middleware';
 // Can be customized when the AI generator solidifies its specific schema.
 export interface TripPlan {
   id: string;
-  destination: string;
+  from?: string; // Origin location
+  destination: string; // Target location
+  passengers?: string;
   days: number;
   createdAt: number;
   coverImage?: string; // Optional image URL for the card

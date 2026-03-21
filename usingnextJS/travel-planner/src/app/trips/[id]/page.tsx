@@ -99,7 +99,7 @@ export default function TripView() {
           <div className="absolute inset-x-0 top-0 h-16 bg-gradient-to-b from-black/20 to-transparent z-10 pointer-events-none"></div>
 
           {/* Reuse the map placeholder we already have */}
-          <MapPlaceholder />
+          <MapPlaceholder sourceString={trip.from} destinationString={trip.destination} />
 
           <div className="absolute inset-x-0 bottom-0 h-32 bg-gradient-to-t from-black/80 via-black/40 to-transparent z-10 pointer-events-none flex items-end px-6 pb-6 lg:hidden">
             <button className="w-full bg-cyber text-black font-bold py-3 rounded-sm shadow-[0_0_20px_rgba(0,255,255,0.3)] pointer-events-auto">

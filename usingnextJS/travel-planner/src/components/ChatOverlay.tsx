@@ -4,15 +4,18 @@ import React, { useState, useEffect, useRef } from "react";
 import ItineraryWidget from "./ItineraryWidget";
 import WeatherWidget from "./WeatherWidget";
 import HotelWidget from "./HotelWidget";
+import MapPlaceholder from "./MapPlaceholder";
 
 interface ChatOverlayProps {
   isOpen: boolean;
   onClose: () => void;
   initialParams: {
-    destination: string;
+    from: string;
+    to: string;
     startDate: string;
     endDate: string;
     budget: string;
+    passengers: string;
   } | null;
 }
 
@@ -33,11 +36,14 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
         // Initialize with dummy data
         const initialDays = calculateDays(initialParams.startDate, initialParams.endDate);
         setDays(initialDays > 0 ? initialDays : 5);
-        setBudgetLimit(initialParams.budget ? parseInt(initialParams.budget.replace(/[^0-9]/g, '')) || 50000 : 50000);
+        
+        const baseBudget = initialParams.budget ? parseInt(initialParams.budget.replace(/[^0-9]/g, '')) || 50000 : 50000;
+        const passengerCount = parseInt(initialParams.passengers || '1') || 1;
+        setBudgetLimit(baseBudget * passengerCount);
 
         setMessages([
-          { role: 'user', content: `Plan a trip to ${initialParams.destination || 'my destination'} from ${initialParams.startDate || 'start date'} to ${initialParams.endDate || 'end date'} with a budget of ${initialParams.budget || 'my budget'}.` },
-          { role: 'ai', content: `I'd be happy to help you plan your trip to ${initialParams.destination || 'your destination'}. Here's an initial itinerary, weather forecast, and some hotel options based on your budget.` }
+          { role: 'user', content: `Plan a trip for ${passengerCount} passengers from ${initialParams.from || 'my location'} to ${initialParams.to || 'my destination'} from ${initialParams.startDate || 'start date'} to ${initialParams.endDate || 'end date'} with a budget constraint of ₹${(baseBudget * passengerCount).toLocaleString()}.` },
+          { role: 'ai', content: `I'd be happy to help plan your trip from ${initialParams.from || 'your location'} to ${initialParams.to || 'your destination'}. Here's an initial itinerary, weather forecast, and some hotel options up to your total budget of ₹${(baseBudget * passengerCount).toLocaleString()} for ${passengerCount} passengers.` }
         ]);
       }
     } else {
@@ -51,10 +57,10 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
   }, [isOpen, initialParams]);
 
   useEffect(() => {
-    if (isOpen && initialParams?.destination) {
+    if (isOpen && initialParams?.to) {
       const fetchImage = async () => {
         try {
-          const res = await fetch(`/api/image?query=${encodeURIComponent(initialParams.destination)}`);
+          const res = await fetch(`/api/image?query=${encodeURIComponent(initialParams.to)}`);
           if (res.ok) {
             const data = await res.json();
             if (data.imageUrl) {
@@ -125,7 +131,7 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
               <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent"></div>
               <div className="absolute bottom-4 left-6 right-6">
                 <span className="text-[10px] uppercase tracking-widest text-white/70 font-bold drop-shadow-md">Destination</span>
-                <h2 className="font-outfit font-black tracking-wide text-white text-2xl drop-shadow-lg capitalize truncate">{initialParams?.destination || "Destination"}</h2>
+                <h2 className="font-outfit font-black tracking-wide text-white text-2xl drop-shadow-lg capitalize truncate">{initialParams?.to || "Destination"}</h2>
               </div>
             </div>
           )}
@@ -192,7 +198,8 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
                   {/* Render UI Widgets for the first AI response */}
                   {msg.role === 'ai' && idx === 1 && (
                     <div className="mt-6 flex flex-col space-y-4">
-                      <WeatherWidget location={initialParams?.destination || "Your Destination"} />
+                      <WeatherWidget location={initialParams?.to || "Your Destination"} />
+                      <MapPlaceholder sourceString={initialParams?.from || "Source"} destinationString={initialParams?.to || "Destination"} />
                       <ItineraryWidget days={days} />
                       <HotelWidget budget={budgetLimit} />
                     </div>
