@@ -25,9 +25,95 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
   const [days, setDays] = useState(5);
   const [budgetLimit, setBudgetLimit] = useState(50000);
   const [isRegenerating, setIsRegenerating] = useState(false);
+  const [isTyping, setIsTyping] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
+  const [itineraryData, setItineraryData] = useState<any[] | null>(null);
+  const [isItineraryLoading, setIsItineraryLoading] = useState(false);
+  const [itineraryError, setItineraryError] = useState<string | null>(null);
+  const [itineraryWarning, setItineraryWarning] = useState<string | null>(null);
 
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
+
+  const fetchItinerary = async (currentDays: number, currentBudget: number, isInitial: boolean = false) => {
+    setIsItineraryLoading(true);
+    setItineraryError(null);
+    setItineraryWarning(null);
+    try {
+      const res = await fetch('/api/generate-itinerary', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          destination: initialParams?.to || 'a random destination',
+          days: currentDays,
+          budget: currentBudget.toString()
+        })
+      });
+      if (!res.ok) {
+        let errorMsg = 'Failed to generate itinerary. Please try again.';
+        try {
+          const errData = await res.json();
+          if (errData.error) errorMsg = errData.error;
+        } catch (e) { }
+        throw new Error(errorMsg);
+      }
+      const data = await res.json();
+
+      if (data.is_sufficient === false) {
+        setItineraryError(data.message || `Insufficient days. Recommended minimum: ${data.recommended_days} days.`);
+        setItineraryData(null);
+        setMessages(prev => {
+          const newMsgs = [...prev];
+          if (isInitial && newMsgs.length >= 2) {
+            newMsgs[1] = { role: 'ai', content: data.message || `I cannot plan a trip to ${initialParams?.to} for just ${currentDays} days.` };
+          } else {
+            newMsgs.push({ role: 'ai', content: data.message || `Please increase the duration to at least ${data.recommended_days} days.` });
+          }
+          return newMsgs;
+        });
+        return;
+      }
+
+      if (data.is_too_long) {
+        setItineraryWarning(data.message || `You can complete the full trip in ${data.recommended_maximum_days} days. There is nothing left to explore!`);
+      }
+
+      if (data.itinerary) {
+        setItineraryData(data.itinerary);
+        setMessages(prev => {
+          const newMsgs = [...prev];
+
+          let successMessage = `Here is your highly optimized travel itinerary to ${initialParams?.to || 'your destination'} for ${currentDays} days within your budget.`;
+          if (data.is_too_long) {
+            successMessage = data.message || `You can complete the full trip to ${initialParams?.to || 'your destination'} in ${data.recommended_maximum_days} days. There is nothing left to explore beyond that, so I've planned for ${data.recommended_maximum_days} days. You can safely reduce your trip days!`;
+          } else if (!isInitial) {
+            successMessage = `I have dynamically generated a new neural itinerary for ${currentDays} days and ₹${currentBudget.toLocaleString()} as requested.`;
+          }
+
+          if (isInitial && newMsgs.length >= 2) {
+            newMsgs[1] = { role: 'ai', content: successMessage };
+          } else {
+            newMsgs.push({ role: 'ai', content: successMessage });
+          }
+          return newMsgs;
+        });
+      } else {
+        throw new Error('Invalid neural response format.');
+      }
+    } catch (err: any) {
+      setItineraryError(err.message || 'Error communicating with AI service.');
+      setMessages(prev => {
+        const newMsgs = [...prev];
+        if (isInitial && newMsgs.length >= 2) {
+          newMsgs[1] = { role: 'ai', content: `I encountered an issue generating your itinerary: ${err.message || 'Please try again.'}. Showing dummy data for now.` };
+        } else {
+          newMsgs.push({ role: 'ai', content: `I failed to update your itinerary: ${err.message}` });
+        }
+        return newMsgs;
+      });
+    } finally {
+      setIsItineraryLoading(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -36,15 +122,17 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
         // Initialize with dummy data
         const initialDays = calculateDays(initialParams.startDate, initialParams.endDate);
         setDays(initialDays > 0 ? initialDays : 5);
-        
+
         const baseBudget = initialParams.budget ? parseInt(initialParams.budget.replace(/[^0-9]/g, '')) || 50000 : 50000;
         const passengerCount = parseInt(initialParams.passengers || '1') || 1;
         setBudgetLimit(baseBudget * passengerCount);
 
         setMessages([
           { role: 'user', content: `Plan a trip for ${passengerCount} passengers from ${initialParams.from || 'my location'} to ${initialParams.to || 'my destination'} from ${initialParams.startDate || 'start date'} to ${initialParams.endDate || 'end date'} with a budget constraint of ₹${(baseBudget * passengerCount).toLocaleString()}.` },
-          { role: 'ai', content: `I'd be happy to help plan your trip from ${initialParams.from || 'your location'} to ${initialParams.to || 'your destination'}. Here's an initial itinerary, weather forecast, and some hotel options up to your total budget of ₹${(baseBudget * passengerCount).toLocaleString()} for ${passengerCount} passengers.` }
+          { role: 'ai', content: `I'd be happy to help plan your trip from ${initialParams.from || 'your location'} to ${initialParams.to || 'your destination'}. Generating dynamic neural itinerary now...` }
         ]);
+
+        fetchItinerary(initialDays > 0 ? initialDays : 5, baseBudget * passengerCount, true);
       }
     } else {
       document.body.style.overflow = "unset";
@@ -60,11 +148,11 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
     if (isOpen && initialParams?.to) {
       const fetchImage = async () => {
         try {
-          const res = await fetch(`/api/image?query=${encodeURIComponent(initialParams.to)}`);
+          const res = await fetch(`/api/get-destination-image?destination=${encodeURIComponent(initialParams.to)}`);
           if (res.ok) {
             const data = await res.json();
-            if (data.imageUrl) {
-              setImageUrl(data.imageUrl);
+            if (data.image && data.image.url) {
+              setImageUrl(data.image.url);
             }
           }
         } catch (error) {
@@ -78,7 +166,7 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
 
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages, isRegenerating]);
+  }, [messages, isRegenerating, isTyping]);
 
   // Dummy function for days calculation
   const calculateDays = (start: string, end: string) => {
@@ -91,26 +179,47 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
 
   const handleSliderChange = () => {
     setIsRegenerating(true);
-    setTimeout(() => {
+    fetchItinerary(days, budgetLimit, false).then(() => {
       setIsRegenerating(false);
-      // Here we would update dummy widgets or fetch from AI again
-      setMessages(prev => [...prev, { role: 'ai', content: `I have updated your tools and itinerary for ${days} days with a budget of ₹${budgetLimit.toLocaleString()}.` }]);
-    }, 1500);
+    });
   };
 
-  const handleSendMessage = (e: React.FormEvent) => {
+  const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inputMessage.trim()) return;
+    if (!inputMessage.trim() || isRegenerating || isTyping) return;
 
-    setMessages([...messages, { role: 'user', content: inputMessage }]);
+    const currentMessage = inputMessage;
+    const newMessages = [...messages, { role: 'user', content: currentMessage }];
+    setMessages(newMessages);
     setInputMessage("");
-    setIsRegenerating(true);
+    setIsTyping(true);
 
-    // Simulate AI response
-    setTimeout(() => {
-      setMessages(prev => [...prev, { role: 'ai', content: "I've received your request and updated the plan accordingly." }]);
-      setIsRegenerating(false);
-    }, 1500);
+    try {
+      const res = await fetch('/api/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          message: currentMessage,
+          history: messages
+        })
+      });
+
+      if (!res.ok) {
+        throw new Error('Failed to fetch response');
+      }
+
+      const data = await res.json();
+      if (data.reply) {
+        setMessages(prev => [...prev, { role: 'ai', content: data.reply }]);
+      } else {
+        throw new Error('Invalid response format');
+      }
+    } catch (error) {
+      console.error(error);
+      setMessages(prev => [...prev, { role: 'ai', content: "Sorry, I'm having trouble connecting to my neural network right now." }]);
+    } finally {
+      setIsTyping(false);
+    }
   };
 
   if (!isOpen) return null;
@@ -124,7 +233,7 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
         {/* Left Column: Dynamic Controls & Info */}
         <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-white/10 bg-black/40 flex flex-col z-10 shrink-0 overflow-hidden">
           {imageUrl && (
-            <div 
+            <div
               className="w-full h-48 md:h-56 bg-cover bg-center bg-no-repeat relative border-b border-white/10 shrink-0 animate-in fade-in duration-1000"
               style={{ backgroundImage: `url(${imageUrl})` }}
             >
@@ -200,14 +309,38 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
                     <div className="mt-6 flex flex-col space-y-4">
                       <WeatherWidget location={initialParams?.to || "Your Destination"} />
                       <MapPlaceholder sourceString={initialParams?.from || "Source"} destinationString={initialParams?.to || "Destination"} />
-                      <ItineraryWidget days={days} />
+                      {isItineraryLoading ? (
+                        <div className="w-full bg-black/40 border border-white/10 rounded-2xl p-6 mt-4 flex items-center justify-center min-h-[150px]">
+                          <div className="flex flex-col items-center space-y-3">
+                            <span className="flex h-4 w-4 relative">
+                              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-cyber opacity-75"></span>
+                              <span className="relative inline-flex rounded-full h-4 w-4 bg-cyber"></span>
+                            </span>
+                            <p className="text-xs text-cyber tracking-widest uppercase font-bold text-center animate-pulse">Generating neural itinerary...</p>
+                          </div>
+                        </div>
+                      ) : itineraryError ? (
+                        <div className="bg-red-500/10 border border-red-500/20 rounded-2xl p-6 mt-4">
+                          <p className="text-red-400 text-sm mb-4">{itineraryError}</p>
+                          <ItineraryWidget days={days} />
+                        </div>
+                      ) : (
+                        <>
+                          {itineraryWarning && (
+                            <div className="bg-yellow-500/10 border border-yellow-500/20 rounded-2xl p-4 mt-4 mb-2">
+                              <p className="text-yellow-400 text-sm font-light">{itineraryWarning}</p>
+                            </div>
+                          )}
+                          <ItineraryWidget days={days} itinerary={itineraryData || undefined} />
+                        </>
+                      )}
                       <HotelWidget budget={budgetLimit} />
                     </div>
                   )}
                 </div>
               </div>
             ))}
-            {isRegenerating && (
+            {(isRegenerating || isTyping) && (
               <div className="flex justify-start">
                 <div className="bg-white/5 border border-white/10 text-slate-300 rounded-2xl rounded-tl-sm p-4 flex space-x-2 items-center">
                   <div className="w-2 h-2 bg-cyber rounded-full animate-bounce" style={{ animationDelay: '0ms' }}></div>
@@ -231,7 +364,7 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
               />
               <button
                 type="submit"
-                disabled={!inputMessage.trim() || isRegenerating}
+                disabled={!inputMessage.trim() || isRegenerating || isTyping}
                 className="absolute right-2 top-2 bottom-2 aspect-square bg-cyber text-deep rounded-full flex items-center justify-center hover:scale-105 transition-transform disabled:opacity-50 disabled:hover:scale-100"
               >
                 <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8"></path></svg>
