@@ -25,7 +25,32 @@ export async function GET(request: Request) {
     }
 
     const data = await res.json();
-    return NextResponse.json(data);
+
+    // Determine travel advice
+    const weatherMain = data.weather[0].main;
+    const temp = data.main.temp;
+    let travel_advice = "Weather looks good for travel 🌤️";
+
+    if (weatherMain === "Rain") {
+      travel_advice = "Carry an umbrella ☔";
+    } else if (temp > 35) {
+      travel_advice = "Stay hydrated 🥵";
+    }
+
+    // Format the response
+    const formattedData = {
+      city: data.name,
+      country: data.sys.country,
+      temperature: temp,
+      feels_like: data.main.feels_like,
+      weather: data.weather[0].description,
+      humidity: data.main.humidity,
+      wind_speed: data.wind.speed,
+      icon: `https://openweathermap.org/img/wn/${data.weather[0].icon}@2x.png`,
+      travel_advice
+    };
+
+    return NextResponse.json(formattedData);
   } catch (error: any) {
     console.error('Error fetching weather data:', error);
     return NextResponse.json({ error: 'Internal server error while fetching weather data' }, { status: 500 });
