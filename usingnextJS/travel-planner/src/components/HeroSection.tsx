@@ -103,8 +103,8 @@ export default function HeroSection() {
                   <span className="text-xs font-bold text-white">1</span>
                 </div>
                 <div>
-                  <h3 className="text-cyber font-bold tracking-widest text-sm uppercase mb-1">Set Coordinates</h3>
-                  <p className="text-sm font-light leading-relaxed">Enter your desired global node (Destination) in the primary input terminal on the right.</p>
+                  <h3 className="text-cyber font-bold tracking-widest text-sm uppercase mb-1">Fill in the input parameters</h3>
+                  <p className="text-sm font-light leading-relaxed">Enter your starting city and destination in the input form on the right.</p>
                 </div>
               </div>
 
@@ -113,8 +113,8 @@ export default function HeroSection() {
                   <span className="text-xs font-bold text-white">2</span>
                 </div>
                 <div>
-                  <h3 className="text-cyber font-bold tracking-widest text-sm uppercase mb-1">Establish Timeline</h3>
-                  <p className="text-sm font-light leading-relaxed">Input your insertion (Start Date) and extraction (End Date) parameters.</p>
+                  <h3 className="text-cyber font-bold tracking-widest text-sm uppercase mb-1">Timeline</h3>
+                  <p className="text-sm font-light leading-relaxed">Input your start and end dates for the journey.</p>
                 </div>
               </div>
 
@@ -123,8 +123,8 @@ export default function HeroSection() {
                   <span className="text-xs font-bold text-white">3</span>
                 </div>
                 <div>
-                  <h3 className="text-cyber font-bold tracking-widest text-sm uppercase mb-1">Allocate Capital</h3>
-                  <p className="text-sm font-light leading-relaxed">Define your financial absolute limit (Budget in ₹). The system will optimize constraints accordingly.</p>
+                  <h3 className="text-cyber font-bold tracking-widest text-sm uppercase mb-1">Passengers and Budget</h3>
+                  <p className="text-sm font-light leading-relaxed">Define your budget limit and the total number of passengers.</p>
                 </div>
               </div>
 
