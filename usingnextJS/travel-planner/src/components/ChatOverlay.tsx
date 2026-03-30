@@ -5,6 +5,7 @@ import ItineraryWidget from "./ItineraryWidget";
 import WeatherWidget from "./WeatherWidget";
 import HotelWidget from "./HotelWidget";
 import MapPlaceholder from "./MapPlaceholder";
+import ExportPdfButton from "./ExportPdfButton";
 
 interface ChatOverlayProps {
   isOpen: boolean;
@@ -31,6 +32,12 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
   const [isItineraryLoading, setIsItineraryLoading] = useState(false);
   const [itineraryError, setItineraryError] = useState<string | null>(null);
   const [itineraryWarning, setItineraryWarning] = useState<string | null>(null);
+
+  // Weather & map state lifted for PDF export
+  const [weatherInfo, setWeatherInfo] = useState<any>(null);
+  const [sourceGeo, setSourceGeo] = useState<any>(null);
+  const [destGeo, setDestGeo] = useState<any>(null);
+  const [routeInfo, setRouteInfo] = useState<any>(null);
 
   const endOfMessagesRef = useRef<HTMLDivElement>(null);
 
@@ -164,6 +171,61 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
     }
   }, [isOpen, initialParams]);
 
+  // Fetch weather data for PDF export
+  useEffect(() => {
+    if (isOpen && initialParams?.to && initialParams.to !== "Destination") {
+      const fetchWeather = async () => {
+        try {
+          const res = await fetch(`/api/weather?location=${encodeURIComponent(initialParams.to)}`);
+          if (res.ok) {
+            const data = await res.json();
+            setWeatherInfo(data);
+          }
+        } catch (err) {
+          console.error("Failed to fetch weather for PDF", err);
+        }
+      };
+      fetchWeather();
+    }
+  }, [isOpen, initialParams]);
+
+  // Fetch geocoding + route data for PDF export
+  useEffect(() => {
+    if (!isOpen || !initialParams) return;
+    const fetchGeoAndRoute = async () => {
+      try {
+        let src: any = null;
+        let dest: any = null;
+        if (initialParams.to) {
+          const res = await fetch(`/api/graphhopper?q=${encodeURIComponent(initialParams.to)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.hits?.[0]) { dest = data.hits[0]; setDestGeo(dest); }
+          }
+        }
+        if (initialParams.from) {
+          const res = await fetch(`/api/graphhopper?q=${encodeURIComponent(initialParams.from)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.hits?.[0]) { src = data.hits[0]; setSourceGeo(src); }
+          }
+        }
+        if (src && dest) {
+          const res = await fetch(
+            `/api/graphhopper?point=${src.point.lat},${src.point.lng}&point=${dest.point.lat},${dest.point.lng}&profile=car&points_encoded=false`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data.paths?.[0]) setRouteInfo(data.paths[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch geo/route for PDF", err);
+      }
+    };
+    fetchGeoAndRoute();
+  }, [isOpen, initialParams]);
+
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isRegenerating, isTyping]);
@@ -289,6 +351,27 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
                 />
               </div>
             </div>
+
+            {/* Sidebar Export PDF Button */}
+            {!isItineraryLoading && messages.length >= 2 && (
+              <ExportPdfButton
+                variant="sidebar"
+                destination={initialParams?.to || "Destination"}
+                from={initialParams?.from || ""}
+                days={days}
+                budget={budgetLimit}
+                passengers={initialParams?.passengers}
+                startDate={initialParams?.startDate}
+                endDate={initialParams?.endDate}
+                imageUrl={imageUrl}
+                itinerary={itineraryData || undefined}
+                weatherData={weatherInfo}
+                sourceData={sourceGeo}
+                mapData={destGeo}
+                routeDistance={routeInfo?.distance}
+                routeTime={routeInfo?.time}
+              />
+            )}
           </div>
         </div>
 
@@ -333,6 +416,28 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
                           )}
                           <ItineraryWidget days={days} itinerary={itineraryData || undefined} />
                         </>
+                      )}
+                      {/* Floating Export PDF Button - shows after loading regardless of success/error */}
+                      {!isItineraryLoading && (
+                        <div className="mt-4 flex justify-end">
+                          <ExportPdfButton
+                            variant="floating"
+                            destination={initialParams?.to || "Destination"}
+                            from={initialParams?.from || ""}
+                            days={days}
+                            budget={budgetLimit}
+                            passengers={initialParams?.passengers}
+                            startDate={initialParams?.startDate}
+                            endDate={initialParams?.endDate}
+                            imageUrl={imageUrl}
+                            itinerary={itineraryData || undefined}
+                            weatherData={weatherInfo}
+                            sourceData={sourceGeo}
+                            mapData={destGeo}
+                            routeDistance={routeInfo?.distance}
+                            routeTime={routeInfo?.time}
+                          />
+                        </div>
                       )}
                       <HotelWidget budget={budgetLimit} />
                     </div>
