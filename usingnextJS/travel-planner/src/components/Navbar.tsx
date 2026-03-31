@@ -42,7 +42,7 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center space-x-6 pl-6 border-l border-white/10">
-            <Link href="/#login" className="text-slate-300 hover:text-white transition-colors font-semibold uppercase">Log In</Link>
+            <Link href="/" className="text-slate-300 hover:text-white transition-colors font-semibold uppercase">Log In / Switch User</Link>
             <Link href="/#start" className="px-6 py-2.5 bg-white text-black font-bold rounded-sm border border-transparent hover:bg-transparent hover:text-white hover:border-white hover:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all duration-300">
               PLAN A TRIP
             </Link>
@@ -77,7 +77,7 @@ export default function Navbar() {
 
         <div className="h-px w-24 bg-white/10 my-4"></div>
 
-        <Link href="/#login" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-outfit font-bold text-slate-300 hover:text-white transition-colors uppercase tracking-widest">Log In</Link>
+        <Link href="/" onClick={() => setIsMobileMenuOpen(false)} className="text-xl font-outfit font-bold text-slate-300 hover:text-white transition-colors uppercase tracking-widest">Log In / Switch User</Link>
         <Link href="/#start" onClick={() => setIsMobileMenuOpen(false)} className="px-8 py-4 bg-white text-black font-bold rounded-sm border border-transparent hover:bg-transparent hover:text-white hover:border-white transition-all tracking-widest text-lg w-64 text-center mt-4">
           PLAN A TRIP
         </Link>
