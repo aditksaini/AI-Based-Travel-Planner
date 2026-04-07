@@ -439,7 +439,12 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
                           />
                         </div>
                       )}
-                      <HotelWidget budget={budgetLimit} />
+                      <HotelWidget 
+                        budget={budgetLimit} 
+                        destination={initialParams?.to || "Destination"} 
+                        days={days} 
+                        passengers={initialParams?.passengers ? parseInt(initialParams.passengers) : 1} 
+                      />
                     </div>
                   )}
                 </div>
