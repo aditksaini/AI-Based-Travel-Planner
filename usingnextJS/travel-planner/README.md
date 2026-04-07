@@ -1,4 +1,4 @@
-# 🌍 AI-Based Travel Planner
+ 🌍 AI-Based Travel Planner
 
 **AI-Based Travel Planner** is an intelligent, modern web application built with [Next.js](https://nextjs.org/) that helps you plan your perfect trip. By leveraging advanced AI, interactive maps, and real-time weather data, this app generates personalized itineraries, calculates routes, and tracks your travel budget effortlessly.
 
