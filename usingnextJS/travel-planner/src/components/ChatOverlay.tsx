@@ -6,6 +6,7 @@ import WeatherWidget from "./WeatherWidget";
 import HotelWidget from "./HotelWidget";
 import MapPlaceholder from "./MapPlaceholder";
 import ExportPdfButton from "./ExportPdfButton";
+import { useTripStore, TripPlan } from "@/store/useTripStore";
 
 interface ChatOverlayProps {
   isOpen: boolean;
@@ -32,6 +33,10 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
   const [isItineraryLoading, setIsItineraryLoading] = useState(false);
   const [itineraryError, setItineraryError] = useState<string | null>(null);
   const [itineraryWarning, setItineraryWarning] = useState<string | null>(null);
+
+  const [currentTripId, setCurrentTripId] = useState<string>("");
+  const { savedTrips, saveTrip } = useTripStore();
+  const isTripSaved = savedTrips.some(t => t.id === currentTripId);
 
   // Weather & map state lifted for PDF export
   const [weatherInfo, setWeatherInfo] = useState<any>(null);
@@ -126,6 +131,10 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
     if (isOpen) {
       document.body.style.overflow = "hidden";
       if (initialParams && messages.length === 0) {
+        // Generate unique ID for this trip session
+        const newTripId = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : Date.now().toString();
+        setCurrentTripId(newTripId);
+
         // Initialize with dummy data
         const initialDays = calculateDays(initialParams.startDate, initialParams.endDate);
         setDays(initialDays > 0 ? initialDays : 5);
@@ -229,6 +238,25 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
   useEffect(() => {
     endOfMessagesRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, isRegenerating, isTyping]);
+
+  const handleSaveTrip = () => {
+    if (!initialParams || !currentTripId) return;
+
+    const tripToSave: TripPlan = {
+      id: currentTripId,
+      from: initialParams.from,
+      destination: initialParams.to || "Destination",
+      passengers: initialParams.passengers,
+      days: days,
+      createdAt: Date.now(),
+      coverImage: imageUrl || undefined,
+      content: itineraryData,
+      mapCoordinates: destGeo,
+      budget: budgetLimit
+    };
+
+    saveTrip(tripToSave);
+  };
 
   // Dummy function for days calculation
   const calculateDays = (start: string, end: string) => {
@@ -352,25 +380,45 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
               </div>
             </div>
 
-            {/* Sidebar Export PDF Button */}
+            {/* Sidebar Actions */}
             {!isItineraryLoading && messages.length >= 2 && (
-              <ExportPdfButton
-                variant="sidebar"
-                destination={initialParams?.to || "Destination"}
-                from={initialParams?.from || ""}
-                days={days}
-                budget={budgetLimit}
-                passengers={initialParams?.passengers}
-                startDate={initialParams?.startDate}
-                endDate={initialParams?.endDate}
-                imageUrl={imageUrl}
-                itinerary={itineraryData || undefined}
-                weatherData={weatherInfo}
-                sourceData={sourceGeo}
-                mapData={destGeo}
-                routeDistance={routeInfo?.distance}
-                routeTime={routeInfo?.time}
-              />
+              <div className="space-y-3 mt-6">
+                <ExportPdfButton
+                  variant="sidebar"
+                  destination={initialParams?.to || "Destination"}
+                  from={initialParams?.from || ""}
+                  days={days}
+                  budget={budgetLimit}
+                  passengers={initialParams?.passengers}
+                  startDate={initialParams?.startDate}
+                  endDate={initialParams?.endDate}
+                  imageUrl={imageUrl}
+                  itinerary={itineraryData || undefined}
+                  weatherData={weatherInfo}
+                  sourceData={sourceGeo}
+                  mapData={destGeo}
+                  routeDistance={routeInfo?.distance}
+                  routeTime={routeInfo?.time}
+                />
+
+                <button
+                  onClick={handleSaveTrip}
+                  className={`w-full py-3 flex items-center justify-center gap-2 border font-bold tracking-widest uppercase text-xs transition-all duration-300 rounded-md shadow-md cursor-pointer ${
+                    isTripSaved
+                      ? "border-green-500/60 bg-green-500/20 text-green-400 hover:bg-green-500 hover:text-black hover:border-green-500"
+                      : "border-cyber/60 text-cyber hover:bg-cyber hover:text-black hover:border-cyber"
+                  }`}
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    {isTripSaved ? (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                    ) : (
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                    )}
+                  </svg>
+                  <span>{isTripSaved ? "Trip Saved ✓" : "Save Trip"}</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -417,9 +465,9 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
                           <ItineraryWidget days={days} itinerary={itineraryData || undefined} />
                         </>
                       )}
-                      {/* Floating Export PDF Button - shows after loading regardless of success/error */}
+                      {/* Floating Actions */}
                       {!isItineraryLoading && (
-                        <div className="mt-4 flex justify-end">
+                        <div className="mt-4 flex justify-end gap-3 flex-wrap">
                           <ExportPdfButton
                             variant="floating"
                             destination={initialParams?.to || "Destination"}
@@ -437,6 +485,24 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
                             routeDistance={routeInfo?.distance}
                             routeTime={routeInfo?.time}
                           />
+
+                          <button
+                            onClick={handleSaveTrip}
+                            className={`inline-flex items-center gap-2 px-5 py-2.5 border rounded-xl font-bold text-xs tracking-widest uppercase transition-all duration-300 backdrop-blur-sm shadow-md cursor-pointer ${
+                              isTripSaved
+                                ? "border-green-500/50 bg-green-500/10 text-green-400 hover:bg-green-500/20 hover:border-green-500/80"
+                                : "bg-gradient-to-r from-cyber/20 to-violet/20 border-cyber/40 text-cyber hover:from-cyber/30 hover:to-violet/30 hover:border-cyber/70 hover:shadow-[0_0_20px_rgba(0,245,255,0.15)]"
+                            }`}
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              {isTripSaved ? (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
+                              ) : (
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4" />
+                              )}
+                            </svg>
+                            <span>{isTripSaved ? "Saved" : "Save Trip"}</span>
+                          </button>
                         </div>
                       )}
                       <HotelWidget 
