@@ -10,7 +10,7 @@ export async function GET(req: Request) {
     }
 
     const geminiApiKey = process.env.GEMINI_API_KEY;
-    const pexelsApiKey = process.env.NEXT_PUBLIC_PEXELS_API_KEY || process.env.PEXELS_API_KEY;
+    const pexelsApiKey = process.env.PEXELS_API_KEY;
 
     if (!geminiApiKey || geminiApiKey === 'your_gemini_api_key_here') {
       return NextResponse.json({ error: 'Gemini API key is not configured' }, { status: 500 });

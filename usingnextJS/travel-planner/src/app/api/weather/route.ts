@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Location is required' }, { status: 400 });
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_OPENWEATHER_API_KEY;
+  const apiKey = process.env.OPENWEATHER_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'OpenWeather API key is not configured' }, { status: 500 });
   }
