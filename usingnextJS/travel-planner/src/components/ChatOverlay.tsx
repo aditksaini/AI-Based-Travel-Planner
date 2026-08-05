@@ -6,6 +6,7 @@ import WeatherWidget from "./WeatherWidget";
 import HotelWidget from "./HotelWidget";
 import MapPlaceholder from "./MapPlaceholder";
 import ExportPdfButton from "./ExportPdfButton";
+import YoutubeWidget from "./YoutubeWidget";
 import { useTripStore, TripPlan } from "@/store/useTripStore";
 
 interface ChatOverlayProps {
@@ -511,6 +512,7 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
                         days={days} 
                         passengers={initialParams?.passengers ? parseInt(initialParams.passengers) : 1} 
                       />
+                      <YoutubeWidget destination={initialParams?.to || "Destination"} />
                     </div>
                   )}
                 </div>
