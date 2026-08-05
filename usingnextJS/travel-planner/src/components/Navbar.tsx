@@ -2,8 +2,10 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
+import { useSession, signOut } from "next-auth/react";
 
 export default function Navbar() {
+  const { data: session } = useSession();
   const [isScrolled, setIsScrolled] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -12,7 +14,6 @@ export default function Navbar() {
       setIsScrolled(window.scrollY > 20);
     };
 
-    // Check on mount as well
     handleScroll();
 
     window.addEventListener("scroll", handleScroll, { passive: true });
@@ -42,7 +43,25 @@ export default function Navbar() {
           </Link>
 
           <div className="flex items-center space-x-6 pl-6 border-l border-white/10">
-            <Link href="/" className="text-slate-300 hover:text-white transition-colors font-semibold uppercase">Log In / Switch User</Link>
+            {session ? (
+              <div className="flex items-center space-x-3">
+                <span className="text-cyber font-medium">{session.user?.name || session.user?.email}</span>
+                <button
+                  onClick={() => {
+                    document.cookie = "auth_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                    document.cookie = "guest_session=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT";
+                    signOut({ callbackUrl: "/" });
+                  }}
+                  className="text-xs uppercase text-red-400 hover:text-red-300 font-semibold cursor-pointer"
+                >
+                  Log Out
+                </button>
+              </div>
+            ) : (
+              <Link href="/" className="text-slate-300 hover:text-white transition-colors font-semibold uppercase">
+                Log In
+              </Link>
+            )}
             <Link href="/#start" className="px-6 py-2.5 bg-white text-black font-bold rounded-sm border border-transparent hover:bg-transparent hover:text-white hover:border-white hover:shadow-[0_0_15px_rgba(255,255,255,0.2)] transition-all duration-300">
               PLAN A TRIP
             </Link>
