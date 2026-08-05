@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'At least two points are required for routing' }, { status: 400 });
   }
 
-  const apiKey = process.env.NEXT_PUBLIC_GRAPHHOPPER_API_KEY;
+  const apiKey = process.env.GRAPHHOPPER_API_KEY;
   if (!apiKey) {
     return NextResponse.json({ error: 'GraphHopper API key is not configured' }, { status: 500 });
   }

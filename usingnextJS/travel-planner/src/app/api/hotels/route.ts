@@ -9,7 +9,7 @@ export async function GET(request: Request) {
 
   const apiKey = process.env.RAPIDAPI_KEY;
   const apiHost = process.env.RAPIDAPI_HOST || 'booking-com15.p.rapidapi.com';
-  const pexelsKey = process.env.NEXT_PUBLIC_PEXELS_API_KEY;
+  const pexelsKey = process.env.PEXELS_API_KEY;
 
   if (!apiKey) {
     return NextResponse.json({ error: 'API key not configured' }, { status: 500 });

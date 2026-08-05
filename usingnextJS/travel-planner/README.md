@@ -1,4 +1,4 @@
-# 🌍 AI-Based Travel Planner
+ 🌍 AI-Based Travel Planner
 
 **AI-Based Travel Planner** is an intelligent, modern web application built with [Next.js](https://nextjs.org/) that helps you plan your perfect trip. By leveraging advanced AI, interactive maps, and real-time weather data, this app generates personalized itineraries, calculates routes, and tracks your travel budget effortlessly.
 
@@ -81,11 +81,12 @@ Create a `.env.local` file in the root directory (where `package.json` is locate
 GEMINI_API_KEY=your_gemini_api_key_here
 
 # OpenWeather API key for weather widget
-NEXT_PUBLIC_OPENWEATHER_API_KEY=your_openweather_api_key_here
+OPENWEATHER_API_KEY=your_openweather_api_key_here
 
 # Other keys that might be required
-# NEXT_PUBLIC_GRAPHHOPPER_API_KEY=...
-# NEXT_PUBLIC_UNSPLASH_API_KEY=...
+GRAPHHOPPER_API_KEY=your_graphhopper_api_key_here
+PEXELS_API_KEY=your_pexels_api_key_here
+RAPIDAPI_KEY=your_rapidapi_key_here
 ```
 
 ### 3. Run the Development Server
