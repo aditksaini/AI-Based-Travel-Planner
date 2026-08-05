@@ -4,9 +4,11 @@ import React, { useEffect, useState } from "react";
 import { useParams, useRouter } from "next/navigation";
 import { useTripStore } from "@/store/useTripStore";
 import Navbar from "@/components/Navbar";
-
-// We'll import MapPlaceholder here or whatever map component you currently use
 import MapPlaceholder from "@/components/MapPlaceholder";
+import WeatherWidget from "@/components/WeatherWidget";
+import ItineraryWidget from "@/components/ItineraryWidget";
+import HotelWidget from "@/components/HotelWidget";
+import ExportPdfButton from "@/components/ExportPdfButton";
 
 export default function TripView() {
   const params = useParams();
@@ -17,9 +19,68 @@ export default function TripView() {
   const tripId = Array.isArray(params.id) ? params.id[0] : params.id;
   const trip = getTripById(tripId || "");
 
+  const [weatherInfo, setWeatherInfo] = useState<any>(null);
+  const [sourceGeo, setSourceGeo] = useState<any>(null);
+  const [destGeo, setDestGeo] = useState<any>(null);
+  const [routeInfo, setRouteInfo] = useState<any>(null);
+
   useEffect(() => {
     setMounted(true);
   }, []);
+
+  // Fetch weather data for PDF export
+  useEffect(() => {
+    if (!trip?.destination) return;
+    const fetchWeather = async () => {
+      try {
+        const res = await fetch(`/api/weather?location=${encodeURIComponent(trip.destination)}`);
+        if (res.ok) {
+          const data = await res.json();
+          setWeatherInfo(data);
+        }
+      } catch (err) {
+        console.error("Failed to fetch weather for PDF", err);
+      }
+    };
+    fetchWeather();
+  }, [trip?.destination]);
+
+  // Fetch geocoding + route data for PDF export
+  useEffect(() => {
+    if (!trip) return;
+    const fetchGeoAndRoute = async () => {
+      try {
+        let src: any = null;
+        let dest: any = null;
+        if (trip.destination) {
+          const res = await fetch(`/api/graphhopper?q=${encodeURIComponent(trip.destination)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.hits?.[0]) { dest = data.hits[0]; setDestGeo(dest); }
+          }
+        }
+        if (trip.from) {
+          const res = await fetch(`/api/graphhopper?q=${encodeURIComponent(trip.from)}`);
+          if (res.ok) {
+            const data = await res.json();
+            if (data.hits?.[0]) { src = data.hits[0]; setSourceGeo(src); }
+          }
+        }
+        if (src && dest) {
+          const res = await fetch(
+            `/api/graphhopper?point=${src.point.lat},${src.point.lng}&point=${dest.point.lat},${dest.point.lng}&profile=car&points_encoded=false`
+          );
+          if (res.ok) {
+            const data = await res.json();
+            if (data.paths?.[0]) setRouteInfo(data.paths[0]);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch geo/route for PDF", err);
+      }
+    };
+    fetchGeoAndRoute();
+  }, [trip]);
 
   if (!mounted) {
     return (
@@ -71,25 +132,35 @@ export default function TripView() {
           </div>
 
           {/* Scrollable Itinerary Content */}
-          <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
-            <div className="space-y-8">
-              {/* 
-                This is a placeholder for where the actual AI generated JSON payload will map out the days.
-                For now we'll render a generic representation of the saved trip data.
-              */}
+          <div className="flex-1 overflow-y-auto p-6 scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent space-y-6">
+            <WeatherWidget location={trip.destination} />
+            
+            <ItineraryWidget days={trip.days} itinerary={trip.content || undefined} />
 
-              {trip.content ? (
-                <div className="text-slate-300 space-y-4">
-                  {/* Depending on how AI data is structured, map through it here. Assuming it's a string for now or raw object dump */}
-                  <pre className="text-xs font-mono bg-white/5 p-4 rounded text-slate-400 whitespace-pre-wrap">
-                    {JSON.stringify(trip.content, null, 2)}
-                  </pre>
-                </div>
-              ) : (
-                <div className="p-8 border border-dashed border-white/10 rounded-xl text-center text-slate-500">
-                  <p>Detailed itinerary content will be loaded here from the saved state.</p>
-                </div>
-              )}
+            <HotelWidget 
+              budget={trip.budget || 50000} 
+              destination={trip.destination} 
+              days={trip.days} 
+              passengers={trip.passengers ? parseInt(trip.passengers) : 1} 
+            />
+
+            {/* Export PDF Action inside Dashboard View */}
+            <div className="pt-4 border-t border-white/10">
+              <ExportPdfButton
+                variant="sidebar"
+                destination={trip.destination}
+                from={trip.from || ""}
+                days={trip.days}
+                budget={trip.budget || 50000}
+                passengers={trip.passengers}
+                imageUrl={trip.coverImage}
+                itinerary={trip.content || undefined}
+                weatherData={weatherInfo}
+                sourceData={sourceGeo}
+                mapData={destGeo}
+                routeDistance={routeInfo?.distance}
+                routeTime={routeInfo?.time}
+              />
             </div>
           </div>
         </aside>

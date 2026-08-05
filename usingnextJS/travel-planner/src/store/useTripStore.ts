@@ -13,6 +13,7 @@ export interface TripPlan {
   coverImage?: string; // Optional image URL for the card
   content: any; // The main JSON or structured response from AI
   mapCoordinates: any; // Array of points or bounding box for the map
+  budget?: number; // Optional budget
 }
 
 interface TripStore {
