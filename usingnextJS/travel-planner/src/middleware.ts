@@ -3,7 +3,6 @@ import type { NextRequest } from 'next/server';
 
 export function middleware(request: NextRequest) {
   const hasAuthSession = 
-    request.cookies.has('auth_session') ||
     request.cookies.has('authjs.session-token') ||
     request.cookies.has('__Secure-authjs.session-token') ||
     request.cookies.has('next-auth.session-token') ||

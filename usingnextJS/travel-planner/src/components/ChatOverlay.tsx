@@ -404,6 +404,7 @@ export default function ChatOverlay({ isOpen, onClose, initialParams }: ChatOver
 
                 <button
                   onClick={handleSaveTrip}
+                  disabled = {isItineraryLoading || !itineraryData}
                   className={`w-full py-3 flex items-center justify-center gap-2 border font-bold tracking-widest uppercase text-xs transition-all duration-300 rounded-md shadow-md cursor-pointer ${
                     isTripSaved
                       ? "border-green-500/60 bg-green-500/20 text-green-400 hover:bg-green-500 hover:text-black hover:border-green-500"
